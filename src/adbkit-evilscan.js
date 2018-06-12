@@ -28,8 +28,7 @@ Client.prototype.trackDevices = function(callback) {
       Promise.map(networks, async (subnet) => {
         const devices = await NetScannerPromise({ target: subnet, port: '5555', status: 'O' });
         return Promise.map(devices, (device) => {
-          console.log(device);
-          // _.isPlainObject(device) && this.connect(device.ip, device.port).catch(()=>{})
+          if(device.status == 'open') return this.connect(device.ip, device.port).catch(()=>{})
         });
       })
       .finally(() => setTimeout(repeater, 5000));
