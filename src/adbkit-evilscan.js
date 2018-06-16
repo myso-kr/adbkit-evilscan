@@ -26,10 +26,8 @@ Client.prototype.trackDevices = function(callback) {
     const tracker = await trackDevices.apply(this);
     const handler = async (network, port) => {
       const adb = trackClients[network.ip] = trackClients[network.ip] || ADB.createClient(port);
-      return device.client.connect(network.ip, network.port)
-      .then((device) => {
-        tracker.emit('add', _.assign({ adb }, network, device));
-      })
+      return adb.connect(network.ip, network.port)
+      .then((device) => tracker.emit('add', _.assign({ adb }, network, device)))
       .catch(()=>{})
     }
     const repeater = () => {
