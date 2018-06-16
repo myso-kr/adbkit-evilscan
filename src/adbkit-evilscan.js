@@ -17,15 +17,19 @@ const NetScannerPromise = ((options) => {
 
 import ADB from 'adb';
 import Client from 'adbkit/lib/adb/client';
+
+const PORT_BASE = 15037;
 const trackClients = {};
 const trackDevices = Client.prototype.trackDevices;
 Client.prototype.trackDevices = function(callback) {
   return Promise.resolve().then(async () => {
     const tracker = await trackDevices.apply(this);
-    const handler = async (device, port) => {
-      device.client = trackClients[device.ip] = trackClients[device.ip] || ADB.createClient(port);
-      return device.client.connect(device.ip, device.port)
-      .then(() => tracker.emit('add', device))
+    const handler = async (network, port) => {
+      const adb = trackClients[network.ip] = trackClients[network.ip] || ADB.createClient(port);
+      return device.client.connect(network.ip, network.port)
+      .then((device) => {
+        tracker.emit('add', _.assign({ adb }, network, device));
+      })
       .catch(()=>{})
     }
     const repeater = () => {
@@ -36,12 +40,12 @@ Client.prototype.trackDevices = function(callback) {
       Promise.map(networks, async (subnet) => {
         const devices = await NetScannerPromise({ target: subnet, port: '5555', status: 'O' });
         return Promise.map(devices, (device, offset) => {
-          if(device.status == 'open') return handler(device, 15037 + offset);
+          if(device.status == 'open') return handler(device, PORT_BASE + offset);
         });
       })
       .finally(() => setTimeout(repeater, 5000));
     }
-    setTimeout(() => Promise.map(this.listDevices(), (device) => tracker.emit('add', device)).then(() => repeater()));
+    setTimeout(() => Promise.map(this.listDevices(), (device, offset) => handler(device, PORT_BASE + offset)).then(() => repeater()));
     return tracker;
   }).nodeify(callback);
 }
