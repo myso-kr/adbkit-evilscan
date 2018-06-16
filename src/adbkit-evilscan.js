@@ -15,17 +15,18 @@ const NetScannerPromise = ((options) => {
   });
 });
 
-import ADB from 'adb';
+import ADB from 'adbkit';
 import Client from 'adbkit/lib/adb/client';
 
 const PORT_BASE = 15037;
-const trackClients = {};
+
 const trackDevices = Client.prototype.trackDevices;
 Client.prototype.trackDevices = function(callback) {
+  this.trackClients = this.trackClients || {};
   return Promise.resolve().then(async () => {
     const tracker = await trackDevices.apply(this);
     const handler = async (network, port) => {
-      const adb = trackClients[network.ip] = trackClients[network.ip] || ADB.createClient(port);
+      const adb = this.trackClients[network.ip] = this.trackClients[network.ip] || ADB.createClient(port);
       return adb.connect(network.ip, network.port)
       .then((device) => tracker.emit('add', _.assign({ adb }, network, device)))
       .catch(()=>{})
